@@ -1,38 +1,59 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
-import authService from '../services/authService';
-import { LoginDto } from '../types/auth';
-import Captcha from '../components/Captcha';
+import { MailOutlined, LockOutlined } from '@ant-design/icons';
+import { useNavigate, Link } from 'react-router-dom';
+import { AuthService } from '../services/authService';
+import { Captcha } from '../components/Captcha';
 
 /**
  * 登录页面组件
  */
-const Login: React.FC = () => {
+export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [form] = Form.useForm();
   const [captchaId, setCaptchaId] = useState<string>('');
+  const [imageUrl, setImageUrl] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [captchaLoading, setCaptchaLoading] = useState(true);
 
-  // 获取用户尝试访问的页面路径
-  const from = (location.state as any)?.from?.pathname || '/';
-
-  const onFinish = async (values: LoginDto) => {
+  const loadCaptcha = async () => {
     try {
-      const response = await authService.login({
-        ...values,
-        captchaId,
-      });
-      if (response.success) {
-        message.success('登录成功');
-        // 登录成功后重定向到用户尝试访问的页面
-        navigate(from, { replace: true });
-      } else {
-        message.error(response.message);
-      }
+      setCaptchaLoading(true);
+      const response = await AuthService.getCaptcha();
+      setImageUrl(`data:image/png;base64,${response.imageBase64}`);
+      setCaptchaId(response.captchaId);
     } catch (error) {
-      message.error('登录失败，请稍后重试');
+      message.error('加载验证码失败');
+    } finally {
+      setCaptchaLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCaptcha();
+  }, []);
+
+  const onFinish = async (values: { email: string; password: string; captchaCode: string }) => {
+    if (!captchaId) {
+      message.error('请等待验证码加载完成');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await AuthService.login({
+        email: values.email,
+        password: values.password,
+        captchaCode: values.captchaCode,
+        captchaId: captchaId
+      });
+      message.success('登录成功');
+      navigate('/chat');
+    } catch (error: any) {
+      message.error(error.response?.data?.message || '登录失败，请重试');
+      loadCaptcha();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,10 +63,13 @@ const Login: React.FC = () => {
       display: 'flex', 
       justifyContent: 'center', 
       alignItems: 'center',
-      background: '#f0f2f5'
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
     }}>
-      <Card style={{ width: 400 }}>
-        <h1 style={{ textAlign: 'center', marginBottom: 24 }}>登录</h1>
+      <Card style={{ width: 400, borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <h1 style={{ fontSize: 24, marginBottom: 8 }}>欢迎回来</h1>
+          <p style={{ color: '#666' }}>请登录您的账号</p>
+        </div>
         <Form
           form={form}
           name="login"
@@ -60,8 +84,8 @@ const Login: React.FC = () => {
             ]}
           >
             <Input 
-              prefix={<UserOutlined />} 
-              placeholder="邮箱" 
+              prefix={<MailOutlined style={{ color: '#bfbfbf' }} />} 
+              placeholder="邮箱"
               size="large"
             />
           </Form.Item>
@@ -71,7 +95,7 @@ const Login: React.FC = () => {
             rules={[{ required: true, message: '请输入密码' }]}
           >
             <Input.Password
-              prefix={<LockOutlined />}
+              prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
               placeholder="密码"
               size="large"
             />
@@ -79,16 +103,40 @@ const Login: React.FC = () => {
 
           <Form.Item
             name="captchaCode"
-            rules={[{ required: true, message: '请输入验证码' }]}
+            rules={[
+              { required: true, message: '请输入验证码' },
+              { 
+                validator: (_, value) => {
+                  if (captchaLoading) {
+                    return Promise.reject('请等待验证码加载完成');
+                  }
+                  return Promise.resolve();
+                }
+              }
+            ]}
           >
-            <Captcha
-              captchaId={captchaId}
-              onCaptchaIdChange={setCaptchaId}
-            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Input
+                placeholder="验证码"
+                size="large"
+                disabled={captchaLoading}
+              />
+              <Captcha
+                imageUrl={imageUrl}
+                onRefresh={loadCaptcha}
+              />
+            </div>
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit" block size="large">
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              block 
+              size="large"
+              loading={loading}
+              disabled={captchaLoading}
+            >
               登录
             </Button>
           </Form.Item>
@@ -100,6 +148,4 @@ const Login: React.FC = () => {
       </Card>
     </div>
   );
-};
-
-export default Login; 
+}; 

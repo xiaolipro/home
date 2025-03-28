@@ -1,8 +1,9 @@
-import React from 'react';
-import { Layout, Menu, Button } from 'antd';
-import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Layout, Menu, Button, Badge } from 'antd';
+import { UserOutlined, LogoutOutlined, MessageOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import authService from '../services/authService';
+import { AuthService } from '../services/authService';
+import { PrivateMessage } from '../components/PrivateMessage';
 
 const { Header, Content, Sider } = Layout;
 
@@ -11,9 +12,10 @@ const { Header, Content, Sider } = Layout;
  */
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const [messageVisible, setMessageVisible] = useState(false);
 
   const handleLogout = () => {
-    authService.logout();
+    AuthService.logout();
     navigate('/login');
   };
 
@@ -21,14 +23,26 @@ const Home: React.FC = () => {
     <Layout style={{ minHeight: '100vh' }}>
       <Header style={{ padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 style={{ color: 'white', margin: 0 }}>Chat App</h1>
-        <Button 
-          type="text" 
-          icon={<LogoutOutlined />} 
-          onClick={handleLogout}
-          style={{ color: 'white' }}
-        >
-          退出登录
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Badge count={5} offset={[-5, 5]}>
+            <Button 
+              type="text" 
+              icon={<MessageOutlined />} 
+              onClick={() => setMessageVisible(true)}
+              style={{ color: 'white' }}
+            >
+              私信
+            </Button>
+          </Badge>
+          <Button 
+            type="text" 
+            icon={<LogoutOutlined />} 
+            onClick={handleLogout}
+            style={{ color: 'white' }}
+          >
+            退出登录
+          </Button>
+        </div>
       </Header>
       <Layout>
         <Sider width={200} style={{ background: '#fff' }}>
@@ -48,6 +62,11 @@ const Home: React.FC = () => {
           </Content>
         </Layout>
       </Layout>
+
+      <PrivateMessage 
+        visible={messageVisible}
+        onClose={() => setMessageVisible(false)}
+      />
     </Layout>
   );
 };

@@ -1,14 +1,14 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace ChatApp.API.Data;
 
 public class User
 {
-    [Key]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public Guid Id { get; set; }
 
     [Required]
-    [StringLength(50)]
+    [MaxLength(50)]
     public string Username { get; set; }
 
     [Required]
@@ -17,6 +17,8 @@ public class User
 
     [Required]
     public string PasswordHash { get; set; }
+
+    public string? Avatar { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }

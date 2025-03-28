@@ -6,16 +6,6 @@ namespace ChatApp.API.Models.Auth;
 public class AuthResponse
 {
     /// <summary>
-    /// 操作是否成功
-    /// </summary>
-    public bool Success { get; set; }
-
-    /// <summary>
-    /// 响应消息
-    /// </summary>
-    public string Message { get; set; }
-
-    /// <summary>
     /// JWT令牌
     /// </summary>
     public string Token { get; set; }
@@ -34,7 +24,7 @@ public class UserResponse
     /// <summary>
     /// 用户ID
     /// </summary>
-    public string Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>
     /// 用户名

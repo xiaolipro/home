@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using ChatApp.API.Data;
 using ChatApp.API.Extensions;
+using ChatApp.API.Middleware;
 using ChatApp.API.Services;
 using StackExchange.Redis;
 
@@ -40,6 +41,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<CaptchaService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")!));
+builder.Services.AddScoped<PrivateMessageService>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<FriendshipService>();
 
 // Add Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -70,6 +74,9 @@ app.UseHttpsRedirection();
 
 // Use CORS
 app.UseCors("AllowReactApp");
+
+// Add Global Exception Handler
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // Add Authentication & Authorization middleware
 app.UseAuthentication();

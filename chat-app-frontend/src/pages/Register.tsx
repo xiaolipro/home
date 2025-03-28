@@ -1,29 +1,58 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
-import authService from '../services/authService';
-import { RegisterDto } from '../types/auth';
+import { AuthService } from '../services/authService';
+import { Captcha } from '../components/Captcha';
 
 /**
  * 注册页面组件
  */
-const Register: React.FC = () => {
+export const Register: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  const [captchaId, setCaptchaId] = useState<string>('');
+  const [imageUrl, setImageUrl] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [captchaLoading, setCaptchaLoading] = useState(true);
 
-  const onFinish = async (values: RegisterDto) => {
+  const loadCaptcha = async () => {
     try {
-      const response = await authService.register(values);
-      if (response.success) {
-        message.success('注册成功');
-        // 注册成功后重定向到主页
-        navigate('/', { replace: true });
-      } else {
-        message.error(response.message);
-      }
+      setCaptchaLoading(true);
+      const response = await AuthService.getCaptcha();
+      setImageUrl(`data:image/png;base64,${response.imageBase64}`);
+      setCaptchaId(response.captchaId);
     } catch (error) {
-      message.error('注册失败，请稍后重试');
+      message.error('加载验证码失败');
+    } finally {
+      setCaptchaLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCaptcha();
+  }, []);
+
+  const onFinish = async (values: { username: string; password: string; confirmPassword: string; email: string; captchaCode: string }) => {
+    if (!captchaId) {
+      message.error('请等待验证码加载完成');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await AuthService.register({
+        ...values,
+        captchaCode: values.captchaCode,
+        captchaId: captchaId
+      });
+      message.success('注册成功');
+      navigate('/chat');
+    } catch (error: any) {
+      message.error(error.response?.data?.message || '注册失败，请重试');
+      loadCaptcha();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,10 +62,13 @@ const Register: React.FC = () => {
       display: 'flex', 
       justifyContent: 'center', 
       alignItems: 'center',
-      background: '#f0f2f5'
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
     }}>
-      <Card style={{ width: 400 }}>
-        <h1 style={{ textAlign: 'center', marginBottom: 24 }}>注册</h1>
+      <Card style={{ width: 400, borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <h1 style={{ fontSize: 24, marginBottom: 8 }}>创建账号</h1>
+          <p style={{ color: '#666' }}>请填写以下信息完成注册</p>
+        </div>
         <Form
           form={form}
           name="register"
@@ -45,15 +77,11 @@ const Register: React.FC = () => {
         >
           <Form.Item
             name="username"
-            rules={[
-              { required: true, message: '请输入用户名' },
-              { min: 3, message: '用户名至少3个字符' },
-              { max: 50, message: '用户名最多50个字符' }
-            ]}
+            rules={[{ required: true, message: '请输入用户名' }]}
           >
             <Input 
-              prefix={<UserOutlined />} 
-              placeholder="用户名" 
+              prefix={<UserOutlined style={{ color: '#bfbfbf' }} />} 
+              placeholder="用户名"
               size="large"
             />
           </Form.Item>
@@ -66,8 +94,8 @@ const Register: React.FC = () => {
             ]}
           >
             <Input 
-              prefix={<MailOutlined />} 
-              placeholder="邮箱" 
+              prefix={<MailOutlined style={{ color: '#bfbfbf' }} />} 
+              placeholder="邮箱"
               size="large"
             />
           </Form.Item>
@@ -76,11 +104,11 @@ const Register: React.FC = () => {
             name="password"
             rules={[
               { required: true, message: '请输入密码' },
-              { min: 6, message: '密码至少6个字符' }
+              { min: 6, message: '密码长度不能小于6位' }
             ]}
           >
             <Input.Password
-              prefix={<LockOutlined />}
+              prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
               placeholder="密码"
               size="large"
             />
@@ -102,14 +130,48 @@ const Register: React.FC = () => {
             ]}
           >
             <Input.Password
-              prefix={<LockOutlined />}
+              prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
               placeholder="确认密码"
               size="large"
             />
           </Form.Item>
 
+          <Form.Item
+            name="captchaCode"
+            rules={[
+              { required: true, message: '请输入验证码' },
+              { 
+                validator: (_, value) => {
+                  if (captchaLoading) {
+                    return Promise.reject('请等待验证码加载完成');
+                  }
+                  return Promise.resolve();
+                }
+              }
+            ]}
+          >
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Input
+                placeholder="验证码"
+                size="large"
+                disabled={captchaLoading}
+              />
+              <Captcha
+                imageUrl={imageUrl}
+                onRefresh={loadCaptcha}
+              />
+            </div>
+          </Form.Item>
+
           <Form.Item>
-            <Button type="primary" htmlType="submit" block size="large">
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              block 
+              size="large"
+              loading={loading}
+              disabled={captchaLoading}
+            >
               注册
             </Button>
           </Form.Item>
@@ -121,6 +183,4 @@ const Register: React.FC = () => {
       </Card>
     </div>
   );
-};
-
-export default Register; 
+}; 
