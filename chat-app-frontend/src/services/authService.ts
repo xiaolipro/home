@@ -3,9 +3,26 @@ import { RegisterDto, LoginDto, AuthResponseDto, UserDto } from '../types/auth';
 import { setUserToStorage, clearUserFromStorage } from '../utils/auth';
 
 /**
+ * 验证码响应数据传输对象
+ */
+interface CaptchaResponseDto {
+  imageBase64: string;
+  captchaId: string;
+}
+
+/**
  * 认证服务类
  */
 class AuthService {
+  /**
+   * 获取验证码
+   * @returns 验证码图片和ID
+   */
+  async getCaptcha(): Promise<CaptchaResponseDto> {
+    const response = await api.get<CaptchaResponseDto>('/auth/captcha');
+    return response.data;
+  }
+
   /**
    * 用户注册
    * @param registerDto 注册信息

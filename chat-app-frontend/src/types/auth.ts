@@ -18,6 +18,8 @@ export interface RegisterDto {
   email: string;
   password: string;
   confirmPassword: string;
+  captchaId: string;
+  captchaCode: string;
 }
 
 /**
@@ -26,6 +28,8 @@ export interface RegisterDto {
 export interface LoginDto {
   email: string;
   password: string;
+  captchaId: string;
+  captchaCode: string;
 }
 
 /**

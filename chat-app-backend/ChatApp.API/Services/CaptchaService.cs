@@ -169,7 +169,7 @@ public class CaptchaService
         }
 
         // 计算起始位置使文字在图片中居中显示
-        var startXf = (ImageWidth - textWidth) / 2;
+        var startXf = (ImageWidth - textWidth) / code.Length;
         var startYf = (ImageHeight + textHeight) / 2;
 
         // 绘制每个字符，添加随机旋转效果

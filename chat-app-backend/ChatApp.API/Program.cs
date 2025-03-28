@@ -23,6 +23,19 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         b => b.MigrationsAssembly("ChatApp.API")
     ));
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp",
+        builder =>
+        {
+            builder
+                .WithOrigins("http://localhost:3000") // React开发服务器默认端口
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+});
+
 // Add Services
 builder.Services.AddScoped<CaptchaService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
@@ -54,6 +67,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Use CORS
+app.UseCors("AllowReactApp");
 
 // Add Authentication & Authorization middleware
 app.UseAuthentication();
