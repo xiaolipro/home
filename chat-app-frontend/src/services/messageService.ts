@@ -4,12 +4,12 @@ import { apiClient } from './apiClient';
 /**
  * 私信服务类
  */
-export class MessageService {
+export class PrivateMessageService {
   /**
    * 获取私信会话列表
    */
   static async getChatSessions(): Promise<ChatSession[]> {
-    const response = await apiClient.get<ChatSession[]>('/api/messages/sessions');
+    const response = await apiClient.get<ChatSession[]>('/api/privatemessages/sessions');
     return response.data;
   }
 
@@ -18,7 +18,7 @@ export class MessageService {
    * @param userId 用户ID
    */
   static async getMessages(userId: string): Promise<PrivateMessage[]> {
-    const response = await apiClient.get<PrivateMessage[]>(`/api/messages/${userId}`);
+    const response = await apiClient.get<PrivateMessage[]>(`/api/privatemessages/${userId}`);
     return response.data;
   }
 
@@ -27,7 +27,7 @@ export class MessageService {
    * @param request 发送私信请求
    */
   static async sendMessage(request: SendMessageRequest): Promise<PrivateMessage> {
-    const response = await apiClient.post<PrivateMessage>('/api/messages', request);
+    const response = await apiClient.post<PrivateMessage>('/api/privatemessages', request);
     return response.data;
   }
 
@@ -36,14 +36,14 @@ export class MessageService {
    * @param messageId 私信ID
    */
   static async markAsRead(messageId: string): Promise<void> {
-    await apiClient.put(`/api/messages/${messageId}/read`);
+    await apiClient.put(`/api/privatemessages/${messageId}/read`);
   }
 
   /**
    * 获取未读私信数量
    */
   static async getUnreadCount(): Promise<number> {
-    const response = await apiClient.get<{ count: number }>('/api/messages/unread/count');
+    const response = await apiClient.get<{ count: number }>('/api/privatemessages/unread/count');
     return response.data.count;
   }
 } 

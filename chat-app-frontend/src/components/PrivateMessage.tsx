@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Drawer, List, Input, Button, Avatar, Typography } from 'antd';
-import { SendOutlined, UserOutlined } from '@ant-design/icons';
+import { SendOutlined } from '@ant-design/icons';
 import { PrivateMessage as PrivateMessageType, ChatSession, SendMessageRequest } from '../types/message';
-import { MessageService } from '../services/messageService';
+import { PrivateMessageService } from '../services/messageService';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -15,7 +15,7 @@ interface PrivateMessageProps {
 
 export const PrivateMessage: React.FC<PrivateMessageProps> = ({ visible, onClose }) => {
     const [sessions, setSessions] = useState<ChatSession[]>([]);
-    const [selectedUser, setSelectedUser] = useState<ChatSession | null>(null);
+    const [selectedUser, setSelectedUser] = useState<string | null>(null);
     const [messages, setMessages] = useState<PrivateMessageType[]>([]);
     const [inputValue, setInputValue] = useState('');
     const [unreadCount, setUnreadCount] = useState(0);
@@ -34,7 +34,7 @@ export const PrivateMessage: React.FC<PrivateMessageProps> = ({ visible, onClose
 
     useEffect(() => {
         if (selectedUser) {
-            loadMessages(selectedUser.userId);
+            loadMessages(selectedUser);
         }
     }, [selectedUser]);
 
@@ -44,52 +44,48 @@ export const PrivateMessage: React.FC<PrivateMessageProps> = ({ visible, onClose
 
     const loadSessions = async () => {
         try {
-            const data = await MessageService.getChatSessions();
+            const data = await PrivateMessageService.getChatSessions();
             setSessions(data);
         } catch (error) {
-            console.error('加载会话列表失败:', error);
+            console.error('Failed to load chat sessions:', error);
         }
     };
 
     const loadUnreadCount = async () => {
         try {
-            const count = await MessageService.getUnreadCount();
+            const count = await PrivateMessageService.getUnreadCount();
             setUnreadCount(count);
         } catch (error) {
-            console.error('加载未读消息数失败:', error);
+            console.error('Failed to load unread count:', error);
         }
     };
 
     const loadMessages = async (userId: string) => {
         try {
-            const data = await MessageService.getMessages(userId);
+            const data = await PrivateMessageService.getMessages(userId);
             setMessages(data);
         } catch (error) {
-            console.error('加载消息记录失败:', error);
+            console.error('Failed to load messages:', error);
         }
     };
 
     const handleSendMessage = async () => {
-        if (!selectedUser || !inputValue.trim()) return;
+        if (!inputValue.trim() || !selectedUser) return;
 
         try {
             const request: SendMessageRequest = {
-                receiverId: selectedUser.userId,
+                receiverId: selectedUser,
                 content: inputValue.trim()
             };
 
-            await MessageService.sendMessage(request);
+            await PrivateMessageService.sendMessage(request);
             setInputValue('');
-            await loadMessages(selectedUser.userId);
-            await loadSessions();
-            await loadUnreadCount();
+            loadMessages(selectedUser);
+            loadSessions();
+            loadUnreadCount();
         } catch (error) {
-            console.error('发送消息失败:', error);
+            console.error('Failed to send message:', error);
         }
-    };
-
-    const handleUserSelect = (session: ChatSession) => {
-        setSelectedUser(session);
     };
 
     return (
@@ -101,7 +97,7 @@ export const PrivateMessage: React.FC<PrivateMessageProps> = ({ visible, onClose
             width={400}
         >
             <div style={{ display: 'flex', height: '100%' }}>
-                <div style={{ width: 120, borderRight: '1px solid #f0f0f0', overflowY: 'auto' }}>
+                <div style={{ width: 200, borderRight: '1px solid #f0f0f0', overflowY: 'auto' }}>
                     <List
                         dataSource={sessions}
                         renderItem={(session) => (
@@ -109,16 +105,16 @@ export const PrivateMessage: React.FC<PrivateMessageProps> = ({ visible, onClose
                                 style={{
                                     cursor: 'pointer',
                                     padding: '8px',
-                                    backgroundColor: selectedUser?.id === session.id ? '#f0f0f0' : 'transparent'
+                                    backgroundColor: selectedUser === session.userId ? '#f0f0f0' : 'transparent'
                                 }}
-                                onClick={() => handleUserSelect(session)}
+                                onClick={() => setSelectedUser(session.userId)}
                             >
                                 <List.Item.Meta
-                                    avatar={<Avatar src={session.avatar} icon={<UserOutlined />} />}
-                                    title={<Text ellipsis>{session.username}</Text>}
+                                    avatar={<Avatar src={session.avatar} />}
+                                    title={session.username}
                                     description={
-                                        <Text type="secondary" style={{ fontSize: 12 }}>
-                                            {formatDistanceToNow(new Date(session.lastMessageTime), { addSuffix: true, locale: zhCN })}
+                                        <Text ellipsis style={{ maxWidth: 150 }}>
+                                            {session.lastMessage}
                                         </Text>
                                     }
                                 />
@@ -130,59 +126,51 @@ export const PrivateMessage: React.FC<PrivateMessageProps> = ({ visible, onClose
                     {selectedUser ? (
                         <>
                             <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-                                <List
-                                    dataSource={messages}
-                                    renderItem={(message) => {
-                                        const isMe = message.senderId === localStorage.getItem('userId');
-                                        return (
-                                            <div style={{ marginBottom: 16, textAlign: isMe ? 'right' : 'left' }}>
-                                                <div style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 8 }}>
-                                                    {!isMe && <Avatar src={message.sender.avatar} icon={<UserOutlined />} />}
-                                                    <div
-                                                        style={{
-                                                            maxWidth: '70%',
-                                                            padding: '8px 12px',
-                                                            borderRadius: '8px',
-                                                            backgroundColor: isMe ? '#1890ff' : '#f0f0f0',
-                                                            color: isMe ? '#fff' : 'inherit'
-                                                        }}
-                                                    >
-                                                        <Text style={{ color: isMe ? '#fff' : 'inherit' }}>
-                                                            {message.content}
-                                                        </Text>
-                                                        <div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>
-                                                            {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true, locale: zhCN })}
-                                                        </div>
-                                                    </div>
-                                                    {isMe && <Avatar src={message.sender.avatar} icon={<UserOutlined />} />}
-                                                </div>
-                                            </div>
-                                        );
-                                    }}
-                                />
+                                {messages.map((message) => (
+                                    <div
+                                        key={message.id}
+                                        style={{
+                                            marginBottom: '8px',
+                                            display: 'flex',
+                                            justifyContent: message.senderId === localStorage.getItem('userId') ? 'flex-end' : 'flex-start'
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                maxWidth: '70%',
+                                                padding: '8px 12px',
+                                                borderRadius: '8px',
+                                                backgroundColor: message.senderId === localStorage.getItem('userId') ? '#1890ff' : '#f0f0f0',
+                                                color: message.senderId === localStorage.getItem('userId') ? 'white' : 'black'
+                                            }}
+                                        >
+                                            {message.content}
+                                        </div>
+                                    </div>
+                                ))}
                                 <div ref={messagesEndRef} />
                             </div>
                             <div style={{ padding: '16px', borderTop: '1px solid #f0f0f0' }}>
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <Input.TextArea
-                                        value={inputValue}
-                                        onChange={(e) => setInputValue(e.target.value)}
-                                        placeholder="输入消息..."
-                                        autoSize={{ minRows: 1, maxRows: 4 }}
-                                        onPressEnter={(e) => {
-                                            if (!e.shiftKey) {
-                                                e.preventDefault();
-                                                handleSendMessage();
-                                            }
-                                        }}
-                                    />
-                                    <Button
-                                        type="primary"
-                                        icon={<SendOutlined />}
-                                        onClick={handleSendMessage}
-                                        disabled={!inputValue.trim()}
-                                    />
-                                </div>
+                                <Input.TextArea
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    placeholder="输入消息..."
+                                    autoSize={{ minRows: 1, maxRows: 4 }}
+                                    onPressEnter={(e) => {
+                                        if (!e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSendMessage();
+                                        }
+                                    }}
+                                />
+                                <Button
+                                    type="primary"
+                                    icon={<SendOutlined />}
+                                    onClick={handleSendMessage}
+                                    style={{ marginTop: '8px', float: 'right' }}
+                                >
+                                    发送
+                                </Button>
                             </div>
                         </>
                     ) : (
