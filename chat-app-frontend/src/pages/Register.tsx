@@ -23,7 +23,7 @@ export const Register: React.FC = () => {
       setImageUrl(`data:image/png;base64,${response.imageBase64}`);
       setCaptchaId(response.captchaId);
     } catch (error) {
-      message.error('加载验证码失败');
+      console.error('Failed to load captcha:', error);
     } finally {
       setCaptchaLoading(false);
     }
@@ -46,10 +46,8 @@ export const Register: React.FC = () => {
         captchaCode: values.captchaCode,
         captchaId: captchaId
       });
-      message.success('注册成功');
       navigate('/chat');
-    } catch (error: any) {
-      message.error(error.response?.data?.message || '注册失败，请重试');
+    } catch (error) {
       loadCaptcha();
     } finally {
       setLoading(false);

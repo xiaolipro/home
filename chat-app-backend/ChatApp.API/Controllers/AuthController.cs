@@ -87,4 +87,71 @@ public class AuthController : ControllerBase
         var response = await _authService.GetCurrentUserAsync(userId);
         return Ok(response);
     }
+
+    /// <summary>
+    /// 用户登出
+    /// </summary>
+    /// <returns>登出结果</returns>
+    /// <response code="200">登出成功</response>
+    /// <response code="401">未授权</response>
+    /// <response code="404">用户不存在</response>
+    [Authorize]
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> Logout()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+        {
+            return Unauthorized();
+        }
+
+        await _authService.LogoutAsync(userId);
+        return Ok();
+    }
+
+    /// <summary>
+    /// 上传用户头像
+    /// </summary>
+    /// <param name="file">头像文件</param>
+    /// <returns>更新后的用户信息</returns>
+    /// <response code="200">上传成功</response>
+    /// <response code="400">文件格式不支持</response>
+    /// <response code="401">未授权</response>
+    [Authorize]
+    [HttpPost("avatar")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthResponse>> UploadAvatar(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("请选择要上传的文件");
+        }
+
+        // 验证文件类型
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif" };
+        if (!allowedTypes.Contains(file.ContentType))
+        {
+            return BadRequest("只支持 JPG、PNG、GIF 格式的图片");
+        }
+
+        // 验证文件大小（最大 5MB）
+        if (file.Length > 5 * 1024 * 1024)
+        {
+            return BadRequest("文件大小不能超过 5MB");
+        }
+
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+        {
+            return Unauthorized();
+        }
+
+        var response = await _authService.UploadAvatarAsync(userId, file);
+        return Ok(response);
+    }
 } 

@@ -10,5 +10,7 @@ namespace ChatApp.API.Models.DTOs
         public string? Avatar { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
+        public DateTime? LastActiveAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 } 

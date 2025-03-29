@@ -1,5 +1,6 @@
-import { LoginRequest, RegisterRequest, AuthResponse } from '../types/user';
+import { LoginRequest, RegisterRequest, AuthResponse, User, UpdateProfileRequest } from '../types/user';
 import { apiClient } from './apiClient';
+import axios from 'axios';
 
 /**
  * 验证码响应数据传输对象
@@ -86,11 +87,17 @@ export class AuthService {
 
   /**
    * 获取当前用户信息
-   * @returns 当前用户信息或null
    */
-  static getCurrentUser(): { id: string; username: string } | null {
-    const userId = localStorage.getItem('userId');
-    const username = localStorage.getItem('username');
-    return userId && username ? { id: userId, username } : null;
+  static async getCurrentUser(): Promise<User> {
+    const response = await apiClient.get<{ user: User }>('/api/auth/me');
+    return response.data.user;
+  }
+
+  /**
+   * 更新用户个人信息
+   */
+  static async updateProfile(request: UpdateProfileRequest): Promise<User> {
+    const response = await apiClient.put<{ user: User }>('/api/auth/profile', request);
+    return response.data.user;
   }
 } 

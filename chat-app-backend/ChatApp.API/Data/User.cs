@@ -19,7 +19,12 @@ public class User
     public string PasswordHash { get; set; }
 
     public string? Avatar { get; set; }
+    
+    public DateTime? LastLoginAt { get; set; }
+
+    public DateTime? LastActiveAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? LastLoginAt { get; set; }
+    
+    public DateTime? UpdatedAt { get; set; }
 } 

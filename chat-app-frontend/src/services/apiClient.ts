@@ -1,7 +1,10 @@
 import axios from 'axios';
+import { message } from 'antd';
 
+// 创建 axios 实例
 export const apiClient = axios.create({
-    baseURL: 'http://localhost:5000',
+    baseURL: 'http://localhost:5000', // ASP.NET Core 默认端口
+    timeout: 10000,
     headers: {
         'Content-Type': 'application/json'
     }
@@ -26,14 +29,15 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // 未授权，清除 token
+            // 未授权，清除 token 并跳转到登录页
             localStorage.removeItem('token');
             localStorage.removeItem('userId');
-            
-            // 如果当前不在登录页面，则跳转到登录页
-            if (!window.location.pathname.includes('/login')) {
-                window.location.href = '/login';
-            }
+            localStorage.removeItem('username');
+            window.location.href = '/login';
+        } else if (error.response?.status === 400) {
+            // 处理业务错误
+            const errorMessage = error.response.data?.message || '操作失败';
+            message.error(errorMessage);
         }
         return Promise.reject(error);
     }

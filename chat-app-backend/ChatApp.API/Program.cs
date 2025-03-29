@@ -38,6 +38,7 @@ builder.Services.AddCors(options =>
 });
 
 // Add Services
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CaptchaService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")!));
@@ -81,6 +82,18 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 // Add Authentication & Authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 添加静态文件服务
+app.UseStaticFiles();
+
+// 配置 CORS
+app.UseCors(builder =>
+{
+    builder.WithOrigins("http://localhost:3000") // 前端开发服务器地址
+           .AllowAnyMethod()
+           .AllowAnyHeader()
+           .AllowCredentials();
+});
 
 app.MapControllers();
 

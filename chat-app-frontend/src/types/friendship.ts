@@ -17,10 +17,6 @@ export interface FriendshipDto {
     friend: UserDto;
 }
 
-export interface SendFriendRequestRequest {
-    friendId: string;
-}
-
 export interface FriendshipListResponse {
     items: FriendshipDto[];
     total: number;

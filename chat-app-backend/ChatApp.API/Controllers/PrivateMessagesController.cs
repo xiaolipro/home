@@ -37,7 +37,7 @@ namespace ChatApp.API.Controllers
         /// </summary>
         /// <param name="userId">目标用户ID</param>
         /// <returns>聊天记录列表</returns>
-        [HttpGet("users/{userId}")]
+        [HttpGet("{userId}")]
         [ProducesResponseType(typeof(IEnumerable<MessageDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessages(Guid userId)
@@ -80,7 +80,7 @@ namespace ChatApp.API.Controllers
         /// 获取未读消息数量
         /// </summary>
         /// <returns>未读消息数量</returns>
-        [HttpGet("unread/count")]
+        [HttpGet("unread")]
         [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
         public async Task<ActionResult<int>> GetUnreadCount()
         {

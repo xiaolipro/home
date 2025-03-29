@@ -12,13 +12,13 @@ const root = ReactDOM.createRoot(
 );
 
 root.render(
-  <React.StrictMode>
+  //<React.StrictMode>
     <ConfigProvider locale={zhCN}>
       <BrowserRouter>
         <App />
       </BrowserRouter>
     </ConfigProvider>
-  </React.StrictMode>
+  //</React.StrictMode>
 );
 
 reportWebVitals(); 

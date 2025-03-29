@@ -7,6 +7,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using System.IO;
 
 namespace ChatApp.API.Services
 {
@@ -15,15 +18,18 @@ namespace ChatApp.API.Services
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly CaptchaService _captchaService;
+        private readonly IWebHostEnvironment _environment;
 
         public AuthService(
             ApplicationDbContext context,
             IConfiguration configuration,
-            CaptchaService captchaService)
+            CaptchaService captchaService,
+            IWebHostEnvironment environment)
         {
             _context = context;
             _configuration = configuration;
             _captchaService = captchaService;
+            _environment = environment;
         }
 
         public async Task<CaptchaResponse> GetCaptchaAsync()
@@ -61,7 +67,8 @@ namespace ChatApp.API.Services
                 Username = request.Username,
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
 
             _context.Users.Add(user);
@@ -117,7 +124,12 @@ namespace ChatApp.API.Services
                 {
                     Id = user.Id,
                     Username = user.Username,
-                    Email = user.Email
+                    Email = user.Email,
+                    Avatar = user.Avatar,
+                    LastLoginAt = user.LastLoginAt,
+                    LastActiveAt = user.LastActiveAt,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt
                 }
             };
         }
@@ -136,14 +148,37 @@ namespace ChatApp.API.Services
                 {
                     Id = user.Id,
                     Username = user.Username,
-                    Email = user.Email
+                    Email = user.Email,
+                    Avatar = user.Avatar,
+                    LastLoginAt = user.LastLoginAt,
+                    LastActiveAt = user.LastActiveAt,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt
                 }
             };
         }
 
+        public async Task LogoutAsync(Guid userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                throw new BusinessException("USER_NOT_FOUND", "用户不存在");
+            }
+
+            // 更新最后活跃时间
+            user.LastActiveAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+
         private string GenerateJwtToken(User user)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]!));
+            if (string.IsNullOrEmpty(_configuration["JWT:Secret"]))
+            {
+                throw new BusinessException("JWT_CONFIG_ERROR", "JWT配置错误");
+            }
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
@@ -162,6 +197,56 @@ namespace ChatApp.API.Services
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        /// <summary>
+        /// 上传用户头像
+        /// </summary>
+        public async Task<AuthResponse> UploadAvatarAsync(Guid userId, IFormFile file)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                throw new BusinessException("USER_NOT_FOUND", "用户不存在");
+            }
+
+            // 生成文件名
+            var fileName = $"{userId}_{DateTime.UtcNow:yyyyMMddHHmmss}{Path.GetExtension(file.FileName)}";
+            var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "avatars");
+            
+            // 确保目录存在
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            // 保存文件
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // 更新用户头像
+            user.Avatar = $"/uploads/avatars/{fileName}";
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return new AuthResponse
+            {
+                User = new UserResponse
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    Email = user.Email,
+                    Avatar = user.Avatar,
+                    LastLoginAt = user.LastLoginAt,
+                    LastActiveAt = user.LastActiveAt,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt
+                }
+            };
         }
     }
 } 

@@ -1,31 +1,61 @@
-import { FriendshipDto, SendFriendRequestRequest } from '../types/friendship';
 import { apiClient } from './apiClient';
+import { User } from '../types/user';
 
+/**
+ * 好友服务类
+ */
 export class FriendshipService {
-    static async getFriends(): Promise<FriendshipDto[]> {
-        const response = await apiClient.get('/api/friendships');
+    /**
+     * 获取好友列表
+     */
+    static async getFriends(): Promise<User[]> {
+        const response = await apiClient.get<User[]>('/api/friendships/friends');
         return response.data;
     }
 
-    static async getFriendRequests(): Promise<FriendshipDto[]> {
-        const response = await apiClient.get('/api/friendships/requests');
+    /**
+     * 获取待处理的好友请求
+     */
+    static async getFriendRequests(): Promise<User[]> {
+        const response = await apiClient.get<User[]>('/api/friendships/requests');
         return response.data;
     }
 
-    static async sendFriendRequest(request: SendFriendRequestRequest): Promise<FriendshipDto> {
-        const response = await apiClient.post('/api/friendships/requests', request);
+    /**
+     * 搜索用户
+     */
+    static async searchUsers(keyword: string): Promise<User[]> {
+        const response = await apiClient.get<User[]>('/api/friendships/search', {
+            params: { keyword }
+        });
         return response.data;
     }
 
-    static async acceptFriendRequest(requestId: string): Promise<void> {
-        await apiClient.put(`/api/friendships/requests/${requestId}/accept`);
+    /**
+     * 发送好友请求
+     */
+    static async sendFriendRequest(userId: string): Promise<void> {
+        await apiClient.post('/api/friendships/requests', { userId });
     }
 
-    static async rejectFriendRequest(requestId: string): Promise<void> {
-        await apiClient.put(`/api/friendships/requests/${requestId}/reject`);
+    /**
+     * 接受好友请求
+     */
+    static async acceptFriendRequest(userId: string): Promise<void> {
+        await apiClient.put(`/api/friendships/requests/${userId}/accept`);
     }
 
-    static async deleteFriendship(friendshipId: string): Promise<void> {
-        await apiClient.delete(`/api/friendships/${friendshipId}`);
+    /**
+     * 拒绝好友请求
+     */
+    static async rejectFriendRequest(userId: string): Promise<void> {
+        await apiClient.put(`/api/friendships/requests/${userId}/reject`);
+    }
+
+    /**
+     * 删除好友关系
+     */
+    static async deleteFriendship(userId: string): Promise<void> {
+        await apiClient.delete(`/api/friendships/${userId}`);
     }
 } 

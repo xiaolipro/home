@@ -1,9 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using ChatApp.API.Models;
 using ChatApp.API.Models.DTOs;
 using ChatApp.API.Models.Requests;
 using ChatApp.API.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace ChatApp.API.Controllers
 {
@@ -23,12 +23,11 @@ namespace ChatApp.API.Controllers
         /// 获取当前用户的好友列表
         /// </summary>
         /// <returns>好友列表</returns>
-        [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<FriendshipDto>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<FriendshipDto>>> GetFriends()
+        [HttpGet("friends")]
+        [ProducesResponseType(typeof(IEnumerable<UserDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetFriends()
         {
-            var userId = GetCurrentUserId();
-            var friends = await _friendshipService.GetFriendsAsync(userId);
+            var friends = await _friendshipService.GetFriendsAsync();
             return Ok(friends);
         }
 
@@ -40,8 +39,7 @@ namespace ChatApp.API.Controllers
         [ProducesResponseType(typeof(IEnumerable<FriendshipDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<FriendshipDto>>> GetFriendRequests()
         {
-            var userId = GetCurrentUserId();
-            var requests = await _friendshipService.GetFriendRequestsAsync(userId);
+            var requests = await _friendshipService.GetPendingRequestsAsync();
             return Ok(requests);
         }
 
@@ -55,8 +53,7 @@ namespace ChatApp.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<FriendshipDto>> SendFriendRequest([FromBody] SendFriendRequestRequest request)
         {
-            var userId = GetCurrentUserId();
-            var friendship = await _friendshipService.SendFriendRequestAsync(userId, request.FriendId);
+            var friendship = await _friendshipService.SendFriendRequestAsync(request.RequestId);
             return CreatedAtAction(nameof(GetFriends), new { }, friendship);
         }
 
@@ -70,9 +67,8 @@ namespace ChatApp.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> AcceptFriendRequest(Guid requestId)
         {
-            var userId = GetCurrentUserId();
-            await _friendshipService.AcceptFriendRequestAsync(userId, requestId);
-            return NoContent();
+            await _friendshipService.AcceptFriendRequestAsync(requestId);
+            return Ok();
         }
 
         /// <summary>
@@ -85,9 +81,8 @@ namespace ChatApp.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> RejectFriendRequest(Guid requestId)
         {
-            var userId = GetCurrentUserId();
-            await _friendshipService.RejectFriendRequestAsync(userId, requestId);
-            return NoContent();
+            await _friendshipService.RejectFriendRequestAsync(requestId);
+            return Ok();
         }
 
         /// <summary>
@@ -100,19 +95,28 @@ namespace ChatApp.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteFriendship(Guid friendshipId)
         {
-            var userId = GetCurrentUserId();
-            await _friendshipService.DeleteFriendshipAsync(userId, friendshipId);
+            await _friendshipService.DeleteFriendshipAsync(friendshipId);
             return NoContent();
         }
 
-        private Guid GetCurrentUserId()
+        /// <summary>
+        /// 搜索用户
+        /// </summary>
+        /// <param name="query">搜索关键词</param>
+        /// <param name="page">页码</param>
+        /// <param name="pageSize">每页大小</param>
+        /// <returns>用户列表</returns>
+        [HttpGet("search")]
+        [ProducesResponseType(typeof(PagedResult<UserDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PagedResult<UserDto>>> SearchUsers([FromQuery] string query, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+            if (string.IsNullOrWhiteSpace(query))
             {
-                throw new UnauthorizedAccessException("无效的用户认证");
+                return BadRequest("搜索关键词不能为空");
             }
-            return userId;
+
+            var result = await _friendshipService.SearchUsersAsync(query, page, pageSize);
+            return Ok(result);
         }
     }
 } 

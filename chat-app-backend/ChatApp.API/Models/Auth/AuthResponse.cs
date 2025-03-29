@@ -35,4 +35,10 @@ public class UserResponse
     /// 电子邮件地址
     /// </summary>
     public string Email { get; set; }
+    
+    public string? Avatar { get; set; }
+    public DateTime? LastLoginAt { get; set; }
+    public DateTime? LastActiveAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 } 

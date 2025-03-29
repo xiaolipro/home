@@ -5,7 +5,7 @@ namespace ChatApp.API.Models.Requests
     public class SendFriendRequestRequest
     {
         [Required]
-        public Guid FriendId { get; set; }
+        public Guid RequestId { get; set; }
     }
 
     public class RespondToFriendRequestRequest

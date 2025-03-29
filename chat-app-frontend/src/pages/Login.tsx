@@ -1,20 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
 import { MailOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthService } from '../services/authService';
 import { Captcha } from '../components/Captcha';
+import { isAuthenticated } from '../utils/auth';
 
 /**
  * 登录页面组件
  */
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [form] = Form.useForm();
   const [captchaId, setCaptchaId] = useState<string>('');
   const [imageUrl, setImageUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [captchaLoading, setCaptchaLoading] = useState(true);
+
+  useEffect(() => {
+    // 如果已登录，重定向到之前的页面或默认页面
+    if (isAuthenticated()) {
+      const from = location.state?.from?.pathname || '/chat';
+      navigate(from, { replace: true });
+    }
+  }, [navigate, location]);
 
   const loadCaptcha = async () => {
     try {
@@ -23,7 +33,7 @@ export const Login: React.FC = () => {
       setImageUrl(`data:image/png;base64,${response.imageBase64}`);
       setCaptchaId(response.captchaId);
     } catch (error) {
-      message.error('加载验证码失败');
+      console.error('Failed to load captcha:', error);
     } finally {
       setCaptchaLoading(false);
     }
@@ -47,10 +57,9 @@ export const Login: React.FC = () => {
         captchaCode: values.captchaCode,
         captchaId: captchaId
       });
-      message.success('登录成功');
-      navigate('/chat');
-    } catch (error: any) {
-      message.error(error.response?.data?.message || '登录失败，请重试');
+      const from = location.state?.from?.pathname || '/chat';
+      navigate(from, { replace: true });
+    } catch (error) {
       loadCaptcha();
     } finally {
       setLoading(false);

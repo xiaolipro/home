@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout as AntLayout, Menu, Badge } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { MessageOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons';
+import { MessageOutlined, UserOutlined } from '@ant-design/icons';
 import { AuthService } from '../services/authService';
 import { PrivateMessage } from './PrivateMessage';
+import { UserProfile } from './UserProfile';
+import { User } from '../types/user';
 
 const { Header, Content } = AntLayout;
 
@@ -11,6 +13,20 @@ export const Layout: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [messageVisible, setMessageVisible] = useState(false);
+    const [user, setUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        loadUserInfo();
+    }, []);
+
+    const loadUserInfo = async () => {
+        try {
+            const userInfo = await AuthService.getCurrentUser();
+            setUser(userInfo);
+        } catch (error) {
+            console.error('Failed to load user info:', error);
+        }
+    };
 
     const handleLogout = () => {
         AuthService.logout();
@@ -48,17 +64,11 @@ export const Layout: React.FC = () => {
                                 onClick={() => setMessageVisible(true)}
                             />
                         </Badge>
-                        <Menu
-                            mode="horizontal"
-                            items={[
-                                {
-                                    key: 'logout',
-                                    icon: <LogoutOutlined />,
-                                    label: '退出',
-                                    onClick: handleLogout
-                                }
-                            ]}
-                        />
+                        {user && <UserProfile 
+                            user={user} 
+                            onLogout={handleLogout}
+                            onProfileUpdate={setUser}
+                        />}
                     </div>
                 </div>
             </Header>
