@@ -19,7 +19,11 @@ namespace ChatApp.API.Data
 
         public DateTime CreatedAt { get; set; }
 
+        public DateTime? UpdatedAt { get; set; }
+
         public bool IsRead { get; set; }
+
+        public bool IsRecalled { get; set; }
 
         // 导航属性
         public virtual User Sender { get; set; }

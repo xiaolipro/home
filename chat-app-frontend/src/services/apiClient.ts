@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { message } from 'antd';
+import ErrorService from './ErrorService';
 
 // 创建 axios 实例
 export const apiClient = axios.create({
@@ -20,6 +21,11 @@ apiClient.interceptors.request.use(
         return config;
     },
     (error) => {
+        // 记录请求错误
+        ErrorService.collectError(error, {
+            type: 'request_error',
+            config: error.config
+        });
         return Promise.reject(error);
     }
 );
@@ -28,6 +34,24 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
+        // 记录所有API错误
+        const apiError = new Error(
+            `API Error: ${error.response?.status} - ${error.response?.data?.message || error.message}`
+        );
+        apiError.stack = `URL: ${error.config?.url}\nMethod: ${error.config?.method}\n${error.stack}`;
+        
+        // 记录请求参数
+        const requestData = {
+            url: error.config?.url,
+            method: error.config?.method,
+            params: error.config?.params,
+            data: error.config?.data,
+            headers: error.config?.headers,
+            response: error.response?.data
+        };
+        
+        ErrorService.collectError(apiError, requestData);
+
         if (error.response?.status === 401) {
             // 未授权，清除 token 并跳转到登录页
             localStorage.removeItem('token');

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Layout as AntLayout, Menu, Badge } from 'antd';
+import { Layout as AntLayout, Menu } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { MessageOutlined, UserOutlined } from '@ant-design/icons';
 import { AuthService } from '../services/authService';
-import { PrivateMessage } from './PrivateMessage';
+import { SystemNotification } from './SystemNotification';
 import { UserProfile } from './UserProfile';
 import { User } from '../types/user';
 
@@ -12,7 +12,6 @@ const { Header, Content } = AntLayout;
 export const Layout: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [messageVisible, setMessageVisible] = useState(false);
     const [user, setUser] = useState<User | null>(null);
 
     useEffect(() => {
@@ -58,12 +57,7 @@ export const Layout: React.FC = () => {
                         style={{ flex: 1 }}
                     />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <Badge count={5}>
-                            <MessageOutlined
-                                style={{ fontSize: 20, cursor: 'pointer' }}
-                                onClick={() => setMessageVisible(true)}
-                            />
-                        </Badge>
+                        <SystemNotification />
                         {user && <UserProfile 
                             user={user} 
                             onLogout={handleLogout}
@@ -75,7 +69,6 @@ export const Layout: React.FC = () => {
             <Content style={{ padding: '24px', background: '#f0f2f5' }}>
                 <Outlet />
             </Content>
-            <PrivateMessage visible={messageVisible} onClose={() => setMessageVisible(false)} />
         </AntLayout>
     );
 }; 

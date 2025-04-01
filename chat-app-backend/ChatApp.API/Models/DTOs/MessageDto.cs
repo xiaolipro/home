@@ -9,7 +9,9 @@ namespace ChatApp.API.Models.DTOs
         public Guid ReceiverId { get; set; }
         public string Content { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         public bool IsRead { get; set; }
+        public bool IsRecalled { get; set; }
         public UserDto Sender { get; set; }
         public UserDto Receiver { get; set; }
     }

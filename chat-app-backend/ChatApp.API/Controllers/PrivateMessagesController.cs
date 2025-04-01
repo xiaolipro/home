@@ -89,6 +89,39 @@ namespace ChatApp.API.Controllers
             return Ok(count);
         }
 
+        /// <summary>
+        /// 编辑消息
+        /// </summary>
+        /// <param name="messageId">消息ID</param>
+        /// <param name="request">编辑消息请求</param>
+        /// <returns>更新后的消息</returns>
+        [HttpPut("{messageId}")]
+        [ProducesResponseType(typeof(MessageDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<MessageDto>> EditMessage(Guid messageId, [FromBody] EditMessageRequest request)
+        {
+            var currentUserId = GetCurrentUserId();
+            var message = await _messageService.EditMessageAsync(messageId, currentUserId, request.Content);
+            return Ok(message);
+        }
+
+        /// <summary>
+        /// 撤回消息
+        /// </summary>
+        /// <param name="messageId">消息ID</param>
+        /// <returns>操作结果</returns>
+        [HttpDelete("{messageId}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> RecallMessage(Guid messageId)
+        {
+            var currentUserId = GetCurrentUserId();
+            await _messageService.RecallMessageAsync(messageId, currentUserId);
+            return NoContent();
+        }
+
         private Guid GetCurrentUserId()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

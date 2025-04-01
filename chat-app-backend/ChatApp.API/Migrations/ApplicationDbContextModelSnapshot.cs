@@ -67,11 +67,17 @@ namespace ChatApp.API.Migrations
                     b.Property<bool>("IsRead")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<bool>("IsRecalled")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<Guid>("ReceiverId")
                         .HasColumnType("char(36)");
 
                     b.Property<Guid>("SenderId")
                         .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
